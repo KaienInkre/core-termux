@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/data/data/com.termux/files/usr/bin/bash
 
 import "@/utils/log"
 import "@/utils/colors"
@@ -8,13 +8,13 @@ OH_MY_ZSH_DIR="$HOME/.oh-my-zsh"
 LOG_FILE="$CORE_CACHE/install_shell.log"
 
 install_termux_packages() {
-	log_info "Installing zsh and zoxide in Termux..."
+	log_info "Installing dependencies..."
 
-	if pkg install -y zsh zoxide &>>"$LOG_FILE"; then
-		log_success "zsh and zoxide installed successfully"
+	if pkg install -y zsh lsd bat fzf zoxide &>>"$LOG_FILE"; then
+		log_success "Dependencies installed successfully"
 		return 0
 	else
-		log_error "Failed to install zsh and zoxide"
+		log_error "Failed to install dependencies"
 		return 1
 	fi
 }
@@ -60,6 +60,19 @@ setup_zsh_aliases() {
 	add_to_zshrc 'eval "$(zoxide init zsh)"'
 
 	log_success "ZSH aliases configured"
+}
+
+setup_shell_env() {
+	log_info "Setting up shell environment..."
+
+	add_to_zshrc "unalias gga 2>/dev/null"
+	add_to_zshrc "export GOPATH=\"\$HOME/.local/go\""
+	add_to_zshrc "export GOCACHE=\"\$HOME/.cache/go\""
+	add_to_zshrc "export GOMODCACHE=\"\$GOPATH/pkg/mod\""
+	add_to_zshrc "export PATH=\$PATH:\$HOME/go/bin"
+	add_to_zshrc "export OPENCLAW_DISABLE_BONJOUR=1"
+
+	log_success "Shell environment configured"
 }
 
 setupPersistentSession() {
@@ -128,24 +141,21 @@ install_shell() {
 
 	mkdir -p "$(dirname "$LOG_FILE")"
 
-	if loading "Installing zsh and zoxide" install_termux_packages; then
-		log_success "Base packages installed"
-	else
-		log_error "Failed to install base packages"
-	fi
+	loading "Installing base packages" install_termux_packages
+	log_success "Base packages installed"
 	echo
 
 	install_oh_my_zsh
 	echo
 
-	if loading "Installing ZSH plugins" _install_shell_plugins_wrapper; then
-		log_success "ZSH plugins installed"
-	else
-		log_error "Failed to install ZSH plugins"
-	fi
+	_install_shell_plugins_wrapper
+	log_success "ZSH plugins installed"
 	echo
 
 	setup_zsh_aliases
+	echo
+
+	setup_shell_env
 	echo
 
 	setupPersistentSession
@@ -216,6 +226,10 @@ uninstall_oh_my_zsh() {
 }
 
 uninstall_shell() {
+	if [[ ! -d "$OH_MY_ZSH_DIR" ]]; then
+		log_info "ZSH Shell Environment is not installed"
+		return 0
+	fi
 	separator
 	box "Uninstalling ZSH Shell Environment"
 	separator
@@ -224,7 +238,7 @@ uninstall_shell() {
 	mkdir -p "$(dirname "$LOG_FILE")"
 
 	_uninstall_shell_plugins_wrapper
-	uninstall_oh_my_zsh
+	loading "Removing Oh My Zsh" uninstall_oh_my_zsh
 
 	echo
 	separator
@@ -246,13 +260,12 @@ update_shell() {
 
 	mkdir -p "$(dirname "$LOG_FILE")"
 
-	if loading "Updating ZSH plugins" _update_shell_plugins_wrapper; then
-		log_success "ZSH shell environment updated"
-	else
-		log_error "Failed to update ZSH plugins"
-	fi
+	_update_shell_plugins_wrapper
+	log_success "ZSH shell environment updated"
 
+	setup_shell_env
 	echo
+
 	separator
 	log_success "ZSH update completed"
 	separator
@@ -260,6 +273,40 @@ update_shell() {
 }
 
 _update_shell_plugins_wrapper() {
-	import "@/tools/shell/all"
-	update_all_shell_plugins
+  import "@/tools/shell/all"
+  update_all_shell_plugins
+}
+
+reinstall_shell() {
+  separator
+  box "Reinstalling ZSH Shell Environment"
+  separator
+  echo
+
+  mkdir -p "$(dirname "$LOG_FILE")"
+
+  _reinstall_shell_plugins_wrapper
+  log_success "ZSH plugins reinstalled"
+  echo
+
+  setup_zsh_aliases
+  echo
+
+  setup_shell_env
+  echo
+
+  setupPersistentSession
+  echo
+
+  separator
+  log_success "ZSH shell environment reinstallation completed"
+  separator
+  echo
+  log_warn "Please restart Termux or run: exec zsh"
+  echo
+}
+
+_reinstall_shell_plugins_wrapper() {
+  import "@/tools/shell/all"
+  reinstall_all_shell_plugins
 }

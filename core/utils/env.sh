@@ -1,6 +1,6 @@
-#!/usr/bin/env bash
+#!/data/data/com.termux/files/usr/bin/bash
 
-CORE_VERSION="3.8.5"
+CORE_VERSION="4.4.0"
 
 # -------------------------
 # Directorios del usuario
